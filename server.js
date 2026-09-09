@@ -1,0 +1,110 @@
+import express from "express";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+function basicAuth(req, res, next) {
+  const authorization = req.headers.authorization;
+
+  if (!authorization || !authorization.startsWith("Basic ")) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="ImageLab AI"');
+
+    return res.status(401).send("Login necessário.");
+  }
+
+  const encodedCredentials = authorization.split(" ")[1];
+
+  const credentials = Buffer.from(encodedCredentials, "base64").toString(
+    "utf8",
+  );
+
+  const separatorIndex = credentials.indexOf(":");
+
+  const username = credentials.substring(0, separatorIndex);
+
+  const password = credentials.substring(separatorIndex + 1);
+
+  const userIsValid = username === process.env.APP_USER;
+
+  const passwordIsValid = password === process.env.APP_PASSWORD;
+
+  if (userIsValid && passwordIsValid) {
+    return next();
+  }
+
+  res.setHeader("WWW-Authenticate", 'Basic realm="ImageLab AI"');
+
+  return res.status(401).send("Usuário ou senha inválidos.");
+}
+
+app.use(express.json({ limit: "1mb" }));
+
+app.use(basicAuth);
+
+app.use(express.static("."));
+
+app.post("/api/generate-image", async (req, res) => {
+  const prompt = req.body?.prompt?.trim();
+
+  if (!prompt) {
+    return res
+      .status(400)
+      .json({ error: "Informe uma descrição para gerar a imagem." });
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    return res
+      .status(500)
+      .json({ error: "OPENAI_API_KEY não foi configurada no arquivo .env." });
+  }
+
+  try {
+    const apiResponse = await fetch(
+      "https://api.openai.com/v1/images/generations",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-image-2",
+          prompt,
+          size: "1024x1024",
+          quality: "low",
+        }),
+      },
+    );
+
+    const data = await apiResponse.json();
+
+    if (!apiResponse.ok) {
+      console.error("Erro da OpenAI:", data);
+      return res.status(apiResponse.status).json({
+        error: data?.error?.message || "Erro ao gerar a imagem.",
+      });
+    }
+
+    const imageBase64 = data?.data?.[0]?.b64_json;
+
+    if (!imageBase64) {
+      return res
+        .status(500)
+        .json({ error: "A API respondeu sem uma imagem válida." });
+    }
+
+    res.json({ image: `data:image/png;base64,${imageBase64}` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Não foi possível conectar ao serviço de geração de imagens.",
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`ImageLab AI rodando em http://localhost:${PORT}`);
+});
