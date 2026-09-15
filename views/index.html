@@ -486,7 +486,17 @@
             body: JSON.stringify({ prompt }),
           });
 
-          const response = await request.json();
+          const responseText = await request.text();
+
+          let response;
+
+          try {
+            response = JSON.parse(responseText);
+          } catch {
+            throw new Error(
+              `O servidor respondeu em um formato inesperado (HTTP ${request.status}).`,
+            );
+          }
 
           if (!request.ok) {
             throw new Error(
