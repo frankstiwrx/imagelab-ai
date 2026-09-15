@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
 
+//Comento
+
 dotenv.config();
 
 const app = express();
@@ -24,7 +26,9 @@ function basicAuth(req, res, next) {
 
   try {
     const encodedCredentials = authorization.split(" ")[1];
-    const credentials = Buffer.from(encodedCredentials, "base64").toString("utf8");
+    const credentials = Buffer.from(encodedCredentials, "base64").toString(
+      "utf8",
+    );
     const separatorIndex = credentials.indexOf(":");
 
     if (separatorIndex === -1) {

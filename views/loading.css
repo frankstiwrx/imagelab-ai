@@ -10,7 +10,7 @@
   height: 16px;
   border-radius: 50%;
   background: orange;
-  animation: lds-grid 1.2s linear infinite;
+  animation: lds-grid 1.21s linear infinite;
 }
 .lds-grid div:nth-child(1) {
   top: 8px;
