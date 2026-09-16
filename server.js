@@ -2,10 +2,12 @@ import express from "express";
 import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
+import { neon } from "@neondatabase/serverless";
 
 //Comento
 
 dotenv.config();
+const sql = neon(process.env.DATABASE_URL);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,6 +57,29 @@ function basicAuth(req, res, next) {
 app.use(express.json({ limit: "1mb" }));
 
 app.use(basicAuth);
+
+app.get("/api/test-db", async (req, res) => {
+  try {
+    const result = await sql`
+      SELECT
+        NOW() AS database_time,
+        (SELECT COUNT(*)::int FROM users) AS users_count
+    `;
+
+    res.json({
+      ok: true,
+      databaseTime: result[0].database_time,
+      usersCount: result[0].users_count,
+    });
+  } catch (error) {
+    console.error("Erro ao testar banco:", error);
+
+    res.status(500).json({
+      ok: false,
+      error: "Não foi possível conectar ao banco.",
+    });
+  }
+});
 
 app.get(["/", "/index.html"], (req, res) => {
   res.type("html").send(indexHtml);
