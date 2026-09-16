@@ -1,68 +1,87 @@
 .lds-grid {
   display: none;
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
+  margin: 20px auto;
 }
+
+/* Esconde as 9 bolinhas antigas sem precisar alterar o HTML */
 .lds-grid div {
+  display: none;
+}
+
+/* Anel externo */
+.lds-grid::before {
+  content: "";
   position: absolute;
-  width: 16px;
-  height: 16px;
+  inset: 8px;
+
   border-radius: 50%;
-  background: orange;
-  animation: lds-grid 1.21s linear infinite;
+
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    #ff7a00 70deg,
+    #ffb347 130deg,
+    transparent 200deg,
+    #ff7a00 290deg,
+    transparent 360deg
+  );
+
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 5px),
+    #000 0
+  );
+
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 0);
+
+  animation: imagelab-spin 1.3s linear infinite;
+
+  filter: drop-shadow(0 0 8px rgba(255, 122, 0, 0.7));
 }
-.lds-grid div:nth-child(1) {
-  top: 8px;
-  left: 8px;
-  animation-delay: 0s;
+
+/* Estrela central */
+.lds-grid::after {
+  content: "✦";
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  transform: translate(-50%, -50%);
+
+  font-size: 34px;
+  color: #ff9f1c;
+
+  text-shadow:
+    0 0 8px rgba(255, 159, 28, 0.9),
+    0 0 18px rgba(255, 122, 0, 0.7),
+    0 0 30px rgba(255, 122, 0, 0.4);
+
+  animation: imagelab-pulse 1.1s ease-in-out infinite;
 }
-.lds-grid div:nth-child(2) {
-  top: 8px;
-  left: 32px;
-  animation-delay: -0.4s;
+
+@keyframes imagelab-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
-.lds-grid div:nth-child(3) {
-  top: 8px;
-  left: 56px;
-  animation-delay: -0.8s;
-}
-.lds-grid div:nth-child(4) {
-  top: 32px;
-  left: 8px;
-  animation-delay: -0.4s;
-}
-.lds-grid div:nth-child(5) {
-  top: 32px;
-  left: 32px;
-  animation-delay: -0.8s;
-}
-.lds-grid div:nth-child(6) {
-  top: 32px;
-  left: 56px;
-  animation-delay: -1.2s;
-}
-.lds-grid div:nth-child(7) {
-  top: 56px;
-  left: 8px;
-  animation-delay: -0.8s;
-}
-.lds-grid div:nth-child(8) {
-  top: 56px;
-  left: 32px;
-  animation-delay: -1.2s;
-}
-.lds-grid div:nth-child(9) {
-  top: 56px;
-  left: 56px;
-  animation-delay: -1.6s;
-}
-@keyframes lds-grid {
+
+@keyframes imagelab-pulse {
   0%,
   100% {
-    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.85);
+    opacity: 0.55;
   }
+
   50% {
-    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
   }
 }
