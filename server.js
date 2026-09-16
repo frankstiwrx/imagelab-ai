@@ -21,7 +21,7 @@ const loadingCssPath = path.join(process.cwd(), "views", "loading.css");
 const indexHtml = fs.readFileSync(indexPath, "utf8");
 const loadingCss = fs.readFileSync(loadingCssPath, "utf8");
 
-function basicAuth(req, res, next) {
+/* function basicAuth(req, res, next) {
   const authorization = req.headers.authorization;
 
   if (!authorization || !authorization.startsWith("Basic ")) {
@@ -55,7 +55,7 @@ function basicAuth(req, res, next) {
 
   res.setHeader("WWW-Authenticate", 'Basic realm="ImageLab AI"');
   return res.status(401).send("Usuário ou senha inválidos.");
-}
+} */
 
 app.use(express.json({ limit: "1mb" }));
 
@@ -211,9 +211,82 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-app.use(basicAuth);
+async function requireAuth(req, res, next) {
+  try {
+    const token = req.cookies.imagelab_token;
 
-app.get("/api/test-db", async (req, res) => {
+    if (!token) {
+      return res.status(401).json({
+        error: "Você precisa estar logado.",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const users = await sql`
+      SELECT
+        id,
+        username,
+        credits,
+        status,
+        is_admin
+      FROM users
+      WHERE id = ${decoded.userId}
+      LIMIT 1
+    `;
+
+    const user = users[0];
+
+    if (!user) {
+      return res.status(401).json({
+        error: "Usuário não encontrado.",
+      });
+    }
+
+    if (user.status !== "approved") {
+      return res.status(403).json({
+        error: "Sua conta não está aprovada.",
+      });
+    }
+
+    req.user = user;
+
+    next();
+  } catch (error) {
+    console.error("Erro de autenticação:", error);
+
+    return res.status(401).json({
+      error: "Sessão inválida ou expirada.",
+    });
+  }
+}
+
+app.get("/api/me", requireAuth, async (req, res) => {
+  return res.json({
+    user: {
+      id: req.user.id,
+      username: req.user.username,
+      credits: req.user.credits,
+      isAdmin: req.user.is_admin,
+    },
+  });
+});
+
+app.post("/api/logout", (req, res) => {
+  res.clearCookie("imagelab_token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+
+  return res.json({
+    message: "Logout realizado com sucesso.",
+  });
+});
+
+//app.use(basicAuth);
+
+/* app.get("/api/test-db", async (req, res) => {
   try {
     const result = await sql`
       SELECT
@@ -234,7 +307,7 @@ app.get("/api/test-db", async (req, res) => {
       error: "Não foi possível conectar ao banco.",
     });
   }
-});
+}); */
 
 app.get(["/", "/index.html"], (req, res) => {
   res.type("html").send(indexHtml);
@@ -244,13 +317,13 @@ app.get("/loading.css", (req, res) => {
   res.type("text/css").send(loadingCss);
 });
 
-app.post("/api/generate-image", async (req, res) => {
+app.post("/api/generate-image", requireAuth, async (req, res) => {
   const prompt = req.body?.prompt?.trim();
 
   if (!prompt) {
-    return res
-      .status(400)
-      .json({ error: "Informe uma descrição para gerar a imagem." });
+    return res.status(400).json({
+      error: "Informe uma descrição para gerar a imagem.",
+    });
   }
 
   if (!process.env.OPENAI_API_KEY) {
@@ -258,6 +331,34 @@ app.post("/api/generate-image", async (req, res) => {
       error: "OPENAI_API_KEY não foi configurada no ambiente do servidor.",
     });
   }
+
+  let updatedUsers;
+
+  try {
+    // Desconta 1 crédito de forma atômica
+    updatedUsers = await sql`
+      UPDATE users
+      SET credits = credits - 1
+      WHERE
+        id = ${req.user.id}
+        AND credits > 0
+      RETURNING credits
+    `;
+
+    if (updatedUsers.length === 0) {
+      return res.status(403).json({
+        error: "Você não possui créditos suficientes.",
+      });
+    }
+  } catch (error) {
+    console.error("Erro ao descontar crédito:", error);
+
+    return res.status(500).json({
+      error: "Não foi possível verificar seus créditos.",
+    });
+  }
+
+  let generationSucceeded = false;
 
   try {
     const apiResponse = await fetch(
@@ -310,15 +411,33 @@ app.post("/api/generate-image", async (req, res) => {
       });
     }
 
+    generationSucceeded = true;
+
     return res.json({
       image: `data:image/png;base64,${imageBase64}`,
+      credits: updatedUsers[0].credits,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Erro durante geração:", error);
 
     return res.status(500).json({
       error: "Não foi possível conectar ao serviço de geração de imagens.",
     });
+  } finally {
+    // Se nenhuma imagem foi entregue, devolve o crédito
+    if (!generationSucceeded) {
+      try {
+        await sql`
+          UPDATE users
+          SET credits = credits + 1
+          WHERE id = ${req.user.id}
+        `;
+
+        console.log(`Crédito devolvido ao usuário ${req.user.username}.`);
+      } catch (refundError) {
+        console.error("Erro ao devolver crédito:", refundError);
+      }
+    }
   }
 });
 

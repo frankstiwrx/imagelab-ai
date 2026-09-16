@@ -307,6 +307,150 @@
         color: #94a3b8;
         font-size: 13px;
       }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .user-area {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+      }
+
+      .user-info {
+        text-align: right;
+      }
+
+      .user-info strong {
+        display: block;
+      }
+
+      .user-info span {
+        color: #cbd5e1;
+        font-size: 12px;
+      }
+
+      .logout-button {
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        padding: 9px 13px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+
+      .auth-section {
+        min-height: 70vh;
+        display: grid;
+        place-items: center;
+        padding: 40px 16px 70px;
+      }
+
+      .auth-card {
+        width: min(430px, 100%);
+        padding: 30px;
+        background: var(--card);
+        color: var(--text);
+        border-radius: 22px;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+      }
+
+      .auth-card h1 {
+        margin-bottom: 8px;
+      }
+
+      .auth-subtitle {
+        color: var(--muted);
+        margin-bottom: 24px;
+        line-height: 1.5;
+      }
+
+      .auth-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+
+      .auth-tab {
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--text);
+        padding: 11px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .auth-tab.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+      }
+
+      .auth-form label {
+        margin-top: 14px;
+      }
+
+      .auth-form input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 13px;
+        font: inherit;
+        outline: none;
+        background: #f9fafb;
+      }
+
+      .auth-form input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+      }
+
+      .auth-submit {
+        width: 100%;
+        margin-top: 22px;
+        border: none;
+        border-radius: 12px;
+        padding: 13px;
+        background: linear-gradient(
+          135deg,
+          var(--primary),
+          var(--primary-dark)
+        );
+        color: #fff;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .auth-submit:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+
+      .auth-message {
+        min-height: 20px;
+        margin-top: 16px;
+        font-size: 13px;
+      }
+
+      .auth-message.error {
+        color: var(--error);
+      }
+
+      .auth-message.success {
+        color: var(--success);
+      }
+
       @media (max-width: 820px) {
         .generator {
           grid-template-columns: 1fr;
@@ -322,13 +466,91 @@
   </head>
   <body>
     <header class="container">
-      <div class="brand">
-        <div class="brand-mark">✦</div>
-        <span>ImageLab AI</span>
+      <div class="header-content">
+        <div class="brand">
+          <div class="brand-mark">✦</div>
+          <span>ImageLab AI</span>
+        </div>
+
+        <div id="user-area" class="user-area hidden">
+          <div class="user-info">
+            <strong id="username-display"></strong>
+            <span><span id="credits-display">0</span> créditos</span>
+          </div>
+
+          <button id="logout-button" class="logout-button" type="button">
+            Sair
+          </button>
+        </div>
       </div>
     </header>
 
-    <main>
+    <section id="auth-section" class="auth-section">
+      <div class="auth-card">
+        <h1>Bem-vindo ao ImageLab</h1>
+
+        <p class="auth-subtitle">
+          Entre na sua conta ou solicite acesso para começar a gerar imagens.
+        </p>
+
+        <div class="auth-tabs">
+          <button id="login-tab" class="auth-tab active" type="button">
+            Entrar
+          </button>
+
+          <button id="register-tab" class="auth-tab" type="button">
+            Criar conta
+          </button>
+        </div>
+
+        <form id="login-form" class="auth-form">
+          <label for="login-username">Usuário</label>
+          <input
+            id="login-username"
+            type="text"
+            autocomplete="username"
+            required
+          />
+
+          <label for="login-password">Senha</label>
+          <input
+            id="login-password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+
+          <button class="auth-submit" type="submit">Entrar</button>
+        </form>
+
+        <form id="register-form" class="auth-form hidden">
+          <label for="register-username">Usuário</label>
+          <input
+            id="register-username"
+            type="text"
+            minlength="3"
+            maxlength="50"
+            autocomplete="username"
+            required
+          />
+
+          <label for="register-password">Senha</label>
+          <input
+            id="register-password"
+            type="password"
+            minlength="8"
+            autocomplete="new-password"
+            required
+          />
+
+          <button class="auth-submit" type="submit">Solicitar acesso</button>
+        </form>
+
+        <p id="auth-message" class="auth-message"></p>
+      </div>
+    </section>
+
+    <main id="app-content" class="hidden">
       <section class="hero container">
         <h1>Transforme uma ideia em imagem com IA</h1>
         <p>
@@ -443,6 +665,186 @@
     </footer>
 
     <script>
+      const authSection = document.querySelector("#auth-section");
+      const appContent = document.querySelector("#app-content");
+      const loginTab = document.querySelector("#login-tab");
+      const registerTab = document.querySelector("#register-tab");
+      const loginForm = document.querySelector("#login-form");
+      const registerForm = document.querySelector("#register-form");
+      const authMessage = document.querySelector("#auth-message");
+      const userArea = document.querySelector("#user-area");
+      const usernameDisplay = document.querySelector("#username-display");
+      const creditsDisplay = document.querySelector("#credits-display");
+      const logoutButton = document.querySelector("#logout-button");
+
+      function showLogin() {
+        loginForm.classList.remove("hidden");
+        registerForm.classList.add("hidden");
+
+        loginTab.classList.add("active");
+        registerTab.classList.remove("active");
+
+        authMessage.textContent = "";
+        authMessage.className = "auth-message";
+      }
+
+      function showRegister() {
+        registerForm.classList.remove("hidden");
+        loginForm.classList.add("hidden");
+
+        registerTab.classList.add("active");
+        loginTab.classList.remove("active");
+
+        authMessage.textContent = "";
+        authMessage.className = "auth-message";
+      }
+
+      function showApp(user) {
+        authSection.classList.add("hidden");
+        appContent.classList.remove("hidden");
+        userArea.classList.remove("hidden");
+
+        usernameDisplay.textContent = user.username;
+        creditsDisplay.textContent = user.credits;
+      }
+
+      function showAuth() {
+        authSection.classList.remove("hidden");
+        appContent.classList.add("hidden");
+        userArea.classList.add("hidden");
+
+        showLogin();
+      }
+
+      loginTab.addEventListener("click", showLogin);
+      registerTab.addEventListener("click", showRegister);
+
+      registerForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const username = document
+          .querySelector("#register-username")
+          .value.trim();
+
+        const password = document.querySelector("#register-password").value;
+
+        const button = registerForm.querySelector("button");
+
+        button.disabled = true;
+        button.textContent = "Criando conta...";
+
+        authMessage.textContent = "";
+        authMessage.className = "auth-message";
+
+        try {
+          const request = await fetch("/api/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username,
+              password,
+            }),
+          });
+
+          const response = await request.json();
+
+          if (!request.ok) {
+            throw new Error(
+              response.error || "Não foi possível criar a conta.",
+            );
+          }
+
+          authMessage.textContent =
+            "Conta criada! Agora aguarde a aprovação do administrador.";
+
+          authMessage.className = "auth-message success";
+
+          registerForm.reset();
+        } catch (error) {
+          authMessage.textContent = error.message;
+          authMessage.className = "auth-message error";
+        } finally {
+          button.disabled = false;
+          button.textContent = "Solicitar acesso";
+        }
+      });
+
+      loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const username = document.querySelector("#login-username").value.trim();
+
+        const password = document.querySelector("#login-password").value;
+
+        const button = loginForm.querySelector("button");
+
+        button.disabled = true;
+        button.textContent = "Entrando...";
+
+        authMessage.textContent = "";
+        authMessage.className = "auth-message";
+
+        try {
+          const request = await fetch("/api/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username,
+              password,
+            }),
+          });
+
+          const response = await request.json();
+
+          if (!request.ok) {
+            throw new Error(response.error || "Não foi possível entrar.");
+          }
+
+          loginForm.reset();
+
+          showApp(response.user);
+        } catch (error) {
+          authMessage.textContent = error.message;
+          authMessage.className = "auth-message error";
+        } finally {
+          button.disabled = false;
+          button.textContent = "Entrar";
+        }
+      });
+
+      async function checkSession() {
+        try {
+          const request = await fetch("/api/me");
+
+          if (!request.ok) {
+            showAuth();
+            return;
+          }
+
+          const response = await request.json();
+
+          showApp(response.user);
+        } catch {
+          showAuth();
+        }
+      }
+
+      checkSession();
+
+      logoutButton.addEventListener("click", async () => {
+        try {
+          await fetch("/api/logout", {
+            method: "POST",
+          });
+        } finally {
+          showAuth();
+        }
+      });
+
       const generateForm = document.querySelector("#generate-form");
       const promptInput = document.querySelector("#prompt-input");
       const generatedImage = document.querySelector("#generated-image");
@@ -505,6 +907,7 @@
           }
 
           generatedImage.src = response.image;
+          creditsDisplay.textContent = response.credits;
 
           downloadImage.href = response.image;
           downloadImage.download = `imagelab-${Date.now()}.png`;
