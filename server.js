@@ -3,6 +3,9 @@ import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
 import { neon } from "@neondatabase/serverless";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
 
 //Comento
 
@@ -55,6 +58,158 @@ function basicAuth(req, res, next) {
 }
 
 app.use(express.json({ limit: "1mb" }));
+
+app.use(cookieParser());
+
+app.post("/api/register", async (req, res) => {
+  try {
+    let { username, password } = req.body;
+
+    username = username?.trim().toLowerCase();
+
+    if (!username || !password) {
+      return res.status(400).json({
+        error: "Usuário e senha são obrigatórios.",
+      });
+    }
+
+    if (username.length < 3 || username.length > 50) {
+      return res.status(400).json({
+        error: "O usuário deve ter entre 3 e 50 caracteres.",
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        error: "A senha deve possuir pelo menos 8 caracteres.",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const result = await sql`
+      INSERT INTO users (
+        username,
+        password_hash
+      )
+      VALUES (
+        ${username},
+        ${passwordHash}
+      )
+      RETURNING
+        id,
+        username,
+        credits,
+        status,
+        created_at
+    `;
+
+    return res.status(201).json({
+      message: "Conta criada. Aguarde a aprovação do administrador.",
+      user: result[0],
+    });
+  } catch (error) {
+    console.error("Erro ao cadastrar usuário:", error);
+
+    if (error.code === "23505") {
+      return res.status(409).json({
+        error: "Esse nome de usuário já está sendo utilizado.",
+      });
+    }
+
+    return res.status(500).json({
+      error: "Não foi possível criar a conta.",
+    });
+  }
+});
+
+app.post("/api/login", async (req, res) => {
+  try {
+    let { username, password } = req.body;
+
+    username = username?.trim().toLowerCase();
+
+    if (!username || !password) {
+      return res.status(400).json({
+        error: "Usuário e senha são obrigatórios.",
+      });
+    }
+
+    const users = await sql`
+      SELECT
+        id,
+        username,
+        password_hash,
+        credits,
+        status,
+        is_admin
+      FROM users
+      WHERE username = ${username}
+      LIMIT 1
+    `;
+
+    const user = users[0];
+
+    if (!user) {
+      return res.status(401).json({
+        error: "Usuário ou senha inválidos.",
+      });
+    }
+
+    const passwordIsValid = await bcrypt.compare(password, user.password_hash);
+
+    if (!passwordIsValid) {
+      return res.status(401).json({
+        error: "Usuário ou senha inválidos.",
+      });
+    }
+
+    if (user.status === "pending") {
+      return res.status(403).json({
+        error: "Sua conta ainda está aguardando aprovação.",
+      });
+    }
+
+    if (user.status === "rejected") {
+      return res.status(403).json({
+        error: "Esta conta não foi aprovada.",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    res.cookie("imagelab_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({
+      message: "Login realizado com sucesso.",
+      user: {
+        id: user.id,
+        username: user.username,
+        credits: user.credits,
+        isAdmin: user.is_admin,
+      },
+    });
+  } catch (error) {
+    console.error("Erro no login:", error);
+
+    return res.status(500).json({
+      error: "Não foi possível realizar o login.",
+    });
+  }
+});
 
 app.use(basicAuth);
 
