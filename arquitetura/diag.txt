@@ -1,0 +1,16 @@
+Usuário
+  ↓
+Cadastro / Login
+  ↓
+Backend Express
+  ↓
+PostgreSQL
+  ├── usuário
+  ├── senha criptografada
+  └── créditos
+  ↓
+Cookie de autenticação
+  ↓
+Gerador de imagens
+  ↓
+OpenAI API
